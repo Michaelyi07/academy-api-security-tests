@@ -22,7 +22,12 @@ from .models import (
     Roster,
 )
 
-PHONE_RE = re.compile(r"(?<!\d)1[3-9]\d{9}(?!\d)")
+# Match an 11-digit mainland mobile, with an optional +86 / 86 country prefix.
+# The old pattern (?<!\d)1[3-9]\d{9}(?!\d) missed "+8613900000001" because the
+# lookbehind saw the '6' of 86 as a preceding digit. The prefix is now part of
+# the match; the left boundary excludes digits and '+' so a longer numeric run
+# cannot produce a false partial match.
+PHONE_RE = re.compile(r"(?<!\d)\+?(?:86)?1[3-9]\d{9}(?!\d)")
 
 
 def mask_mobile(plain: str) -> str:
@@ -32,10 +37,27 @@ def mask_mobile(plain: str) -> str:
     return f"{plain[:3]}****{plain[-4:]}"
 
 
-def has_phone(value: Any) -> bool:
-    """Recursive scan of any JSON-like structure for an 11-digit mobile pattern."""
+def _scan_text(value: Any) -> list[str]:
+    """Normalise a scalar to text before phone matching.
+
+    Numbers are scanned too: a serialiser that emits a mobile as a JSON int
+    (13900000001) is just as much a leak as one that emits a string. Booleans
+    are excluded (bool is an int subclass but never a phone)."""
+    if isinstance(value, bool):
+        return []
     if isinstance(value, str):
-        return bool(PHONE_RE.search(value))
+        return PHONE_RE.findall(value)
+    if isinstance(value, int):
+        return [] if value < 0 else PHONE_RE.findall(str(value))
+    if isinstance(value, float) and value.is_integer():
+        return [] if value < 0 else PHONE_RE.findall(str(int(value)))
+    return []
+
+
+def has_phone(value: Any) -> bool:
+    """Recursive scan of any JSON-like structure (strings AND numeric values)."""
+    if isinstance(value, (str, int, float)):
+        return bool(_scan_text(value))
     if isinstance(value, dict):
         return any(has_phone(k) or has_phone(v) for k, v in value.items())
     if isinstance(value, (list, tuple, set)):
@@ -44,12 +66,12 @@ def has_phone(value: Any) -> bool:
 
 
 def phone_hits(value: Any) -> list[str]:
-    """Return the matching 11-digit strings found anywhere in a JSON structure."""
+    """Return the matching phone strings found anywhere in a JSON structure."""
     out: list[str] = []
 
     def walk(v: Any) -> None:
-        if isinstance(v, str):
-            out.extend(PHONE_RE.findall(v))
+        if isinstance(v, (str, int, float)):
+            out.extend(_scan_text(v))
         elif isinstance(v, dict):
             for k, item in v.items():
                 walk(k)

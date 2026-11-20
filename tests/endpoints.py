@@ -131,8 +131,11 @@ ENDPOINTS: tuple[Endpoint, ...] = tuple(
 )
 BY_KEY = {e.key: e for e in ENDPOINTS}
 GET_ENDPOINTS = tuple(e for e in ENDPOINTS if e.method == "GET")
+WRITE_ENDPOINTS = tuple(e for e in ENDPOINTS if e.method != "GET")
 ADMIN_ENDPOINTS = tuple(e for e in ENDPOINTS if e.side == "admin")
 MINI_ENDPOINTS = tuple(e for e in ENDPOINTS if e.side == "mini")
+# D7 scans every endpoint that is not an intentional plaintext outlet.
+SCAN_ENDPOINTS = tuple(e for e in ENDPOINTS if "/reveal-mobile" not in e.path)
 
 DIMENSIONS: tuple[str, ...] = (
     "D1_role_permission",

@@ -52,8 +52,10 @@ SESSION_A = uuid.UUID("71000000-0000-4000-8000-000000000001")
 SESSION_B = uuid.UUID("71000000-0000-4000-8000-000000000002")
 ROSTER_A1 = uuid.UUID("72000000-0000-4000-8000-000000000001")
 ROSTER_A2 = uuid.UUID("72000000-0000-4000-8000-000000000002")
+ROSTER_B1 = uuid.UUID("72000000-0000-4000-8000-000000000003")  # real club-B roster
 REVIEW_A_PLAIN = uuid.UUID("73000000-0000-4000-8000-000000000001")
 REVIEW_A_ANON = uuid.UUID("73000000-0000-4000-8000-000000000002")
+REVIEW_B_PLAIN = uuid.UUID("73000000-0000-4000-8000-000000000003")  # real club-B review
 REG_A1 = uuid.UUID("74000000-0000-4000-8000-000000000001")
 REG_A2 = uuid.UUID("74000000-0000-4000-8000-000000000002")
 APP_A1 = uuid.UUID("75000000-0000-4000-8000-000000000001")
@@ -147,6 +149,17 @@ def reset_and_seed(db: Session) -> None:
                 owner_manager_id=U_EMPLOYEE_A,
             )
         ),
+        # Real club-B roster: used to prove A-club staff get 404 on an object
+        # that genuinely exists in club B (not a made-up id).
+        Roster(
+            **_common(
+                SITE_B,
+                ROSTER_B1,
+                session_id=SESSION_B,
+                contact_id=C_B1,
+                owner_manager_id=U_EMPLOYEE_B,
+            )
+        ),
     ]
     reviews = [
         Review(
@@ -171,6 +184,19 @@ def reset_and_seed(db: Session) -> None:
                 is_anonymous=True,
                 rating=4,
                 comment="anonymous note",
+            )
+        ),
+        # Real club-B review: proof of cross-club 404 / DELETE isolation.
+        Review(
+            **_common(
+                SITE_B,
+                REVIEW_B_PLAIN,
+                course_id=COURSE_B,
+                contact_id=C_B1,
+                reviewer_name="Fictional Reviewer B",
+                is_anonymous=False,
+                rating=5,
+                comment="club B note",
             )
         ),
     ]
@@ -226,7 +252,7 @@ def all_ids() -> dict[str, str]:
         "ORG", "SITE_A", "SITE_B", "U_PLATFORM_ADMIN", "U_ORG_ADMIN", "U_CLUB_ADMIN_A",
         "U_EMPLOYEE_A", "U_MANAGER_A", "U_EMPLOYEE_B", "U_MEMBER_A1", "U_MEMBER_A2",
         "U_MEMBER_B1", "C_A1", "C_A2", "C_B1", "COURSE_A", "COURSE_A2", "COURSE_B",
-        "SESSION_A", "SESSION_B", "ROSTER_A1", "ROSTER_A2", "REVIEW_A_PLAIN",
-        "REVIEW_A_ANON", "REG_A1", "REG_A2", "APP_A1", "LEARN_A1", "LEARN_A2",
+        "SESSION_A", "SESSION_B", "ROSTER_A1", "ROSTER_A2", "ROSTER_B1", "REVIEW_A_PLAIN",
+        "REVIEW_A_ANON", "REVIEW_B_PLAIN", "REG_A1", "REG_A2", "APP_A1", "LEARN_A1", "LEARN_A2",
     ]
     return {n: str(globals()[n]) for n in names}

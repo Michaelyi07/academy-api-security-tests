@@ -26,7 +26,7 @@ customer name, no secrets in source, no overseas SDK.
 | D4 | Mini cross-user | user A token -> user B registration/application/review/learning record -> **404** |
 | D5 | Forgery neutrality | URL id change, forged `contact_id`/`site_id`/`org_id` in body have no effect |
 | D6 | Anonymous review privacy | no reviewer info in any mini endpoint |
-| D7 | Phone scan | recursive 11-digit mobile scan of **all GET endpoints** x identity contexts; only `reveal-mobile` returns plaintext |
+| D7 | Phone scan | recursive mobile scan of **all endpoints except `reveal-mobile`** — 23 GET x identity contexts **and all 8 POST/PATCH/DELETE write responses**; detects plain 11-digit, `+86`/`86` prefixes and numeric-typed values; only `reveal-mobile` returns plaintext |
 
 Every endpoint in the live router registry (`tests/endpoints.py`, derived from
 `app.api` at import time) is asserted to have **>= 2** dimensions
@@ -64,4 +64,10 @@ points and 6 roles live in `app/iam.py`.
 - Fictional mobile numbers only (`1390000xxxx` test range), seeded in `app/seed.py`.
 - `app/serializers.py` is the single masking boundary: `mask_mobile()` and
   `review_json(mini=True)`; phone scanner in `app/serializers.py::phone_hits`.
-- Plaintext mobile is emitted only by the two `reveal-mobile` endpoints.
+- The scanner (`PHONE_RE`, `has_phone`, `phone_hits`) matches an 11-digit
+  mainland mobile with optional `+86`/`86` prefix and scans numeric-typed
+  field values as well as strings — so an echo of a raw contact mobile as a
+  JSON int, or with a country prefix, is detected. `tests/test_detector_selftest.py`
+  covers all three forms.
+- Plaintext mobile is emitted only by the two `reveal-mobile` endpoints; every
+  other response (GET **and** write) is scanned by D7.

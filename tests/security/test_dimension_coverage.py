@@ -27,7 +27,9 @@ def test_delete_review_forged_id(client, request) -> None:
     ep = BY_KEY["DELETE /api/admin/academy/reviews/{review_id}"]
     C.record(ep, "D5_forgery_neutral", request.node.nodeid)
     # Forged foreign-site id -> 404; own-site id -> 204.
-    foreign = ep.path.replace("{review_id}", "00000000-0000-4000-8000-000000000098")
+    # Use a REAL club-B review (seeded), so 404 proves scope isolation rather
+    # than merely "id does not exist".
+    foreign = ep.path.replace("{review_id}", str(S.REVIEW_B_PLAIN))
     r1 = C.probe(client, request.node.nodeid + "::forged", ep, headers=C.CLUB_A_ADMIN, path=foreign)
     assert r1.status_code == 404, r1.text
     r2 = C.probe(client, request.node.nodeid + "::own", ep, headers=C.CLUB_A_ADMIN)

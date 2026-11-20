@@ -237,6 +237,12 @@ def write_coverage_matrix() -> Path:
         f"- Minimum dimensions per endpoint: **{total_min if total_min != 99 else 0}** "
         "(acceptance requires >= 2)",
         f"- GET endpoints (phone-scan applicable): **{sum(1 for e in ENDPOINTS if e.method == 'GET')}**",
+        f"- Write endpoints (POST/PATCH/DELETE, phone-scan applicable): "
+        f"**{sum(1 for e in ENDPOINTS if e.method != 'GET')}**",
+        f"- Endpoints D7 executes on: **{len(ENDPOINTS)}** "
+        f"({sum(1 for e in ENDPOINTS if '/reveal-mobile' not in e.path)} "
+        f"assert no mobile; {sum(1 for e in ENDPOINTS if '/reveal-mobile' in e.path)} "
+        f"reveal-mobile assert a mobile IS present)",
         "",
     ]
     path = REPORTS / "coverage_matrix.md"
@@ -297,6 +303,10 @@ def write_run_meta(exitstatus: int) -> None:
         "database_url_env": os.environ.get("ACADEMY_DATABASE_URL", "(default: local PG16)"),
         "endpoints": len(ENDPOINTS),
         "get_endpoints": sum(1 for e in ENDPOINTS if e.method == "GET"),
+        "write_endpoints": sum(1 for e in ENDPOINTS if e.method != "GET"),
+        "d7_dimension_endpoints": len(ENDPOINTS),
+        "d7_assert_absent": sum(1 for e in ENDPOINTS if "/reveal-mobile" not in e.path),
+        "d7_reveal_assert_present": sum(1 for e in ENDPOINTS if "/reveal-mobile" in e.path),
         "issue_count": len(ISSUES),
     }
     (REPORTS / "run_meta.json").write_text(
